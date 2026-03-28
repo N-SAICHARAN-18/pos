@@ -1,0 +1,30 @@
+
+{
+  "project_info": {
+    "project_number": "1075428408526",
+    "project_id": "grocerpos-e38e7",
+    "storage_bucket": "grocerpos-e38e7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1075428408526:android:f49dcc291393e27b19249f",
+        "android_client_info": {
+          "package_name": "com.freshloop.pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnxrbMMlzOue-c13Wz_HweikdUyNJorUw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
