@@ -80,7 +80,7 @@ class _POSScreenState extends State<POSScreen> {
   }
 
   /// ADDS an item to Firestore
-  Future<void> _addItem(String id, String name, double price) async {
+  Future<void> _addItem(String id, String name, double price, {String expiryDate = ''}) async {
     if (!widget.isInitialized) return;
 
     final doc = await _sessionRef.get();
@@ -96,7 +96,7 @@ class _POSScreenState extends State<POSScreen> {
     if (existingIndex != -1) {
       items[existingIndex].qty += 1;
     } else {
-      items.add(CartItem(id: id, name: name, price: price, qty: 1));
+      items.add(CartItem(id: id, name: name, price: price, qty: 1, expiryDate: expiryDate));
     }
 
     await _sessionRef.set({
@@ -154,7 +154,29 @@ class _POSScreenState extends State<POSScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Description')),
-            TextField(controller: expiryController, decoration: const InputDecoration(labelText: 'Expiry Date (e.g. 12/26)')),
+            TextField(
+              controller: expiryController,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Expiry Date',
+                hintText: 'MM/YY',
+                suffixIcon: Icon(Icons.calendar_month),
+              ),
+              onTap: () async {
+                final DateTime? picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2101),
+                );
+                if (picked != null) {
+                  final String day = picked.day.toString().padLeft(2, '0');
+                  final String month = picked.month.toString().padLeft(2, '0');
+                  final String year = picked.year.toString().substring(2);
+                  expiryController.text = '$day-$month-$year';
+                }
+              },
+            ),
             TextField(controller: amountController, decoration: const InputDecoration(labelText: 'Total Amount (₹)'), keyboardType: TextInputType.number),
           ],
         ),
@@ -255,25 +277,55 @@ class _POSScreenState extends State<POSScreen> {
   /// ASK for price and save to products collection
   void _askPriceAndSave(String barcode, String name) {
     final priceController = TextEditingController();
+    final expiryController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Found: $name'),
-        content: TextField(
-          controller: priceController,
-          decoration: const InputDecoration(labelText: 'Enter Price (₹)'),
-          keyboardType: TextInputType.number,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: priceController,
+              decoration: const InputDecoration(labelText: 'Enter Price (₹)'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: expiryController,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Expiry Date',
+                hintText: 'MM/YY',
+                suffixIcon: Icon(Icons.calendar_month),
+              ),
+              onTap: () async {
+                final DateTime? picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2101),
+                );
+                if (picked != null) {
+                  final String day = picked.day.toString().padLeft(2, '0');
+                  final String month = picked.month.toString().padLeft(2, '0');
+                  final String year = picked.year.toString().substring(2);
+                  expiryController.text = '$day-$month-$year';
+                }
+              },
+            ),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
           ElevatedButton(
             onPressed: () async {
               double price = double.tryParse(priceController.text) ?? 0.0;
+              String expiry = expiryController.text.trim();
               await _firestore.collection('products').doc(barcode).set({
                 'name': name,
                 'price': price,
               });
-              _addItem(barcode, name, price);
+              _addItem(barcode, name, price, expiryDate: expiry);
               if (mounted) Navigator.pop(context);
             },
             child: const Text('ADD TO CART'),
@@ -287,6 +339,7 @@ class _POSScreenState extends State<POSScreen> {
   void _showManualEntryDialog(String barcode) {
     final nameController = TextEditingController();
     final priceController = TextEditingController();
+    final expiryController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -297,6 +350,29 @@ class _POSScreenState extends State<POSScreen> {
             Text('Barcode: $barcode', style: const TextStyle(fontSize: 12, color: Colors.grey)),
             TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Product Name')),
             TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price (₹)'), keyboardType: TextInputType.number),
+            TextField(
+              controller: expiryController,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Expiry Date',
+                hintText: 'MM/YY',
+                suffixIcon: Icon(Icons.calendar_month),
+              ),
+              onTap: () async {
+                final DateTime? picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2101),
+                );
+                if (picked != null) {
+                  final String day = picked.day.toString().padLeft(2, '0');
+                  final String month = picked.month.toString().padLeft(2, '0');
+                  final String year = picked.year.toString().substring(2);
+                  expiryController.text = '$day-$month-$year';
+                }
+              },
+            ),
           ],
         ),
         actions: [
@@ -305,9 +381,10 @@ class _POSScreenState extends State<POSScreen> {
             onPressed: () async {
               String name = nameController.text.trim();
               double price = double.tryParse(priceController.text) ?? 0.0;
+              String expiry = expiryController.text.trim();
               if (name.isNotEmpty) {
                 await _firestore.collection('products').doc(barcode).set({'name': name, 'price': price});
-                _addItem(barcode, name, price);
+                _addItem(barcode, name, price, expiryDate: expiry);
                 if (mounted) Navigator.pop(context);
               }
             },
@@ -422,6 +499,7 @@ class _POSScreenState extends State<POSScreen> {
                     'name': item.name,
                     'qty': item.qty,
                     'price': item.price,
+                    'expiryDate': item.expiryDate,
                   }).toList();
 
                   // Requirement 1 & 7: Collection 'orders' with specified fields

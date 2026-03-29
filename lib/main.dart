@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:gocartpos/pos_screen.dart';
+import 'package:gocartpos/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,8 +10,9 @@ void main() async {
   String? initializationError;
 
   try {
-    // Note: For Windows/Web, you may need to pass FirebaseOptions(...) here
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     isFirebaseInitialized = true;
   } catch (e) {
     initializationError = e.toString();
